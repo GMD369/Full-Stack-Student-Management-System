@@ -8,10 +8,13 @@ function signToken(userId) {
 }
 
 function setAuthCookie(res, token) {
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    // Client and server are on different domains in production, so the
+    // cookie must be SameSite=None (requires Secure) to be sent cross-site.
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: COOKIE_MAX_AGE,
   });
 }
@@ -50,7 +53,8 @@ async function login(req, res) {
 }
 
 async function logout(req, res) {
-  res.clearCookie('token');
+  const isProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax' });
   res.json({ message: 'Logged out' });
 }
 
